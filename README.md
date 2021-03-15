@@ -3,6 +3,7 @@
 Home Assistant MQTT discovery support.
 
 Prepare a NodeMCU and a WS2812 light board.
+
 Connect the input of WS2812 light board to NodeMCU's D3
 
 ## 準備硬體
@@ -17,5 +18,7 @@ Connect the input of WS2812 light board to NodeMCU's D3
 - homeassistant/light/my_light/config
 - homeassistant/light/my_light/state
 - homeassistant/light/my_light/set
+
 config 與 state 是 publish topic
+
 set 是 subscribe topic
