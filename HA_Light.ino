@@ -5,11 +5,11 @@
 //
 // Update these with values suitable for your network.
 //
-const char* WIFI_SSID = "YOUR_WIFI_SSID";
-const char* WIFI_PASSWORD = "YOUR_WIFI_SSID";
-const char* MQTT_SERVER = "YOUR_MQTT_SERVER";
-const char* MQTT_SERVER_USER = "YOUR_MQTT_SERVER_USER";
-const char* MQTT_SERVER_PASS = "YOUR_MQTT_SERVER_PASS";
+const char* WIFI_SSID = "WIFI_SSID";
+const char* WIFI_PASSWORD = "WIFI_PASSWORD";
+const char* MQTT_SERVER = "MQTT_SERVER";
+const char* MQTT_SERVER_USER = "MQTT_SERVER_USER";
+const char* MQTT_SERVER_PASS = "MQTT_SERVER_PASS";
 
 //
 // The topic is for Home Assistant MQTT Discovery
@@ -44,6 +44,8 @@ int value = 0;
 
 Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 int Brightness = 255;
+bool Alert = false;
+int AlertLightState = 0;
 
 void setup() {
   Serial.begin(9600);
@@ -70,6 +72,17 @@ void setup() {
 
 void loop()
 {
+  if (Alert) {
+    if (AlertLightState) {
+      setLightBrightness(0, 0, 0);
+      AlertLightState = 0;
+    }
+    else {
+      setLightBrightness(Brightness, 0, 0);
+      AlertLightState = 1;
+    }
+  }
+
   if (!client.connected()) {
     reconnect();
   }
@@ -115,19 +128,43 @@ void callback(char* topic, byte* payload, unsigned int length) {
     str_pl += "}";
     Serial.println(str_pl);
     client.publish(TOPIC_HA_STATE, str_pl.c_str());
-
   }
   else if (str_pl.indexOf("\"OFF\"") >= 0) {
     //
     // Receive the state - 'OFF' from HA
     //
-    setLightBrightness(0);
+    if (Alert)
+      setLightBrightness(0);
+    else
+      smoothOff(Brightness);
+
     delay(100);
 
     //
     // Sync the state to HA
     //
     str_pl  = "{\"state\": \"OFF\", \"brightness\": ";
+    str_pl += Brightness;
+    str_pl += "}";
+    Serial.println(str_pl);
+    client.publish(TOPIC_HA_STATE, str_pl.c_str());
+
+    //
+    // Turn off the alert
+    //
+    Alert = false;
+  }
+  else if (str_pl.indexOf("\"ALERT\"") >= 0) {
+    //
+    // Receive the state - 'ALERT' from HA
+    //
+    Alert = true;
+    delay(100);
+
+    //
+    // Sync the state to HA
+    //
+    str_pl  = "{\"state\": \"ON\", \"brightness\": ";
     str_pl += Brightness;
     str_pl += "}";
     Serial.println(str_pl);
@@ -139,10 +176,29 @@ void setLightBrightness(int bri)
 {
   Serial.printf("setLightBrightness %d\n", bri);
   
+  setLightBrightness(bri, bri, bri);
+}
+
+void setLightBrightness(int rr, int gg, int bb)
+{
+  Serial.printf("setLightBrightness %d, %d, %d\n", rr, gg, bb);
+  
   for (int i = 0; i < NUMPIXELS; i++) { // For each pixel...
-    pixels.setPixelColor(i, pixels.Color(bri, bri, bri));
+    pixels.setPixelColor(i, pixels.Color(rr, gg, bb));
   }
   pixels.show();   // Send the updated pixel colors to the hardware.
+}
+
+void smoothOff(int bri)
+{
+  Serial.printf("setLightBrightness %d\n", bri);
+
+  for(int bri_temp = bri; bri_temp >= 0; bri_temp--) {
+    for (int i = 0; i < NUMPIXELS; i++) { // For each pixel...
+      pixels.setPixelColor(i, pixels.Color(bri_temp, bri_temp, bri_temp));
+    }
+    pixels.show();   // Send the updated pixel colors to the hardware.
+  }
 }
 
 void reconnect() {
