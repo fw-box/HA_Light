@@ -22,3 +22,19 @@ Connect the input of WS2812 light board to NodeMCU's D3
 config 與 state 是 publish topic
 
 set 是 subscribe topic
+
+### homeassistant/light/my_light/config
+publish topic - Setup the HA device.
+
+### homeassistant/light/my_light/state
+publish topic - HA device send the status to HA.
+
+### homeassistant/light/my_light/set
+subscribe topic - HA send the following commands to control the device.
+
+{"state":"ON"}
+
+{"state":"OFF"}
+
+{"state":"ALERT"}
+
